@@ -1,0 +1,232 @@
+<html>
+<head>
+    <base href="https://rentacarwm.com/">
+    <title>Rent a Car WM - Alquiler de Autos</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        header {
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            padding: 1rem;
+        }
+        main {
+            padding: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin-bottom: 1rem;
+        }
+        form {
+            display: grid;
+            gap: 1rem;
+        }
+        label {
+            font-weight: bold;
+        }
+        input, select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #333;
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #555;
+        }
+        #whatsapp {
+            background-color: #25D366;
+        }
+        #whatsapp:hover {
+            background-color: #128C7E;
+        }
+        #resultado, #reserva {
+            margin-top: 2rem;
+            background-color: #f9f9f9;
+            padding: 1rem;
+            border: 1px solid #ddd;
+        }
+        #resultado .buttons, #reserva .buttons {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Rent a Car WM</h1>
+</header>
+<main>
+    <form id="cotizador">
+        <label for="fechaRetiro">Fecha de Retiro:</label>
+        <input type="date" id="fechaRetiro" required>
+
+        <label for="fechaEntrega">Fecha de Entrega:</label>
+        <input type="date" id="fechaEntrega" required>
+
+        <label for="categoria">Categoría del Auto:</label>
+        <select id="categoria" required>
+            <option value="alta">Gama Alta ($100/día)</option>
+            <option value="media">Gama Media ($70/día)</option>
+            <option value="baja">Gama Baja ($30/día)</option>
+        </select>
+
+        <label for="kilometraje">Límite de Kilometraje:</label>
+        <select id="kilometraje" required>
+            <option value="limitado">120km por día</option>
+            <option value="ilimitado">Sin límite de km</option>
+        </select>
+
+        <button type="submit">Calcular Cotización</button>
+    </form>
+
+    <div id="resultado" style="display: none;">
+        <h2>Resultado de la Cotización</h2>
+        <p><strong>Fecha de Retiro:</strong> <span id="res-fechaRetiro"></span></p>
+        <p><strong>Fecha de Entrega:</strong> <span id="res-fechaEntrega"></span></p>
+        <p><strong>Categoría:</strong> <span id="res-categoria"></span></p>
+        <p><strong>Kilometraje:</strong> <span id="res-kilometraje"></span></p>
+        <p><strong>Días de alquiler:</strong> <span id="res-dias"></span></p>
+        <p><strong>Precio Total:</strong> $<span id="res-precioTotal"></span></p>
+
+        <div class="buttons">
+            <button id="reservar">Hacer Reserva</button>
+            <button id="resetCotizador">Reiniciar Cotizador</button>
+        </div>
+    </div>
+
+    <div id="reserva" style="display: none;">
+        <h2>Detalles de la Reserva</h2>
+        <form id="formReserva">
+            <label for="nombre">Nombre Completo:</label>
+            <input type="text" id="nombre" required>
+
+            <label for="direccion">Dirección:</label>
+            <input type="text" id="direccion" required>
+
+            <label for="telefono">Teléfono:</label>
+            <input type="tel" id="telefono" required>
+
+            <label for="formaPago">Forma de Pago:</label>
+            <select id="formaPago" required>
+                <option value="efectivo">Efectivo</option>
+                <option value="tarjeta">Tarjeta de Crédito</option>
+                <option value="transferencia">Transferencia Bancaria</option>
+            </select>
+
+            <div class="buttons">
+                <button id="generarPdfReserva">Generar PDF con Reserva</button>
+            </div>
+        </form>
+    </div>
+
+    <button id="whatsapp">Contactar por WhatsApp</button>
+</main>
+
+<script>
+document.getElementById('cotizador').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const fechaRetiro = new Date(document.getElementById('fechaRetiro').value);
+    const fechaEntrega = new Date(document.getElementById('fechaEntrega').value);
+    
+    if (fechaEntrega <= fechaRetiro) {
+        alert("La fecha de entrega debe ser posterior a la fecha de retiro.");
+        return;
+    }
+
+    const categoria = document.getElementById('categoria').value;
+    const kilometraje = document.getElementById('kilometraje').value;
+
+    const dias = Math.ceil((fechaEntrega - fechaRetiro) / (1000 * 60 * 60 * 24));
+    
+    let precioPorDia;
+    switch(categoria) {
+        case 'alta':
+            precioPorDia = 100;
+            break;
+        case 'media':
+            precioPorDia = 70;
+            break;
+        case 'baja':
+            precioPorDia = 30;
+            break;
+    }
+
+    let precioTotal = precioPorDia * dias;
+    if (kilometraje === 'ilimitado') {
+        precioTotal *= 1.2; // 20% adicional por km ilimitado
+    }
+
+    // Mostrar los resultados de la cotización
+    document.getElementById('res-fechaRetiro').textContent = fechaRetiro.toISOString().split('T')[0];
+    document.getElementById('res-fechaEntrega').textContent = fechaEntrega.toISOString().split('T')[0];
+    document.getElementById('res-categoria').textContent = categoria.charAt(0).toUpperCase() + categoria.slice(1);
+    document.getElementById('res-kilometraje').textContent = kilometraje;
+    document.getElementById('res-dias').textContent = dias;
+    document.getElementById('res-precioTotal').textContent = precioTotal.toFixed(2);
+
+    document.getElementById('resultado').style.display = 'block';
+});
+
+document.getElementById('reservar').addEventListener('click', function() {
+    document.getElementById('reserva').style.display = 'block';
+});
+
+document.getElementById('whatsapp').addEventListener('click', function() {
+    window.open('https://wa.me/5950981484683', '_blank');
+});
+
+document.getElementById('generarPdfReserva').addEventListener('click', function(e) {
+    e.preventDefault();
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // Información de la cotización
+    doc.text("Resultado de Cotización", 10, 10);
+    doc.text(`Fecha de Retiro: ${document.getElementById('res-fechaRetiro').textContent}`, 10, 20);
+    doc.text(`Fecha de Entrega: ${document.getElementById('res-fechaEntrega').textContent}`, 10, 30);
+    doc.text(`Categoría: ${document.getElementById('res-categoria').textContent}`, 10, 40);
+    doc.text(`Kilometraje: ${document.getElementById('res-kilometraje').textContent}`, 10, 50);
+    doc.text(`Días de alquiler: ${document.getElementById('res-dias').textContent}`, 10, 60);
+    doc.text(`Precio Total: $${document.getElementById('res-precioTotal').textContent}`, 10, 70);
+
+    // Información de la reserva
+    doc.text("Detalles de la Reserva", 10, 90);
+    doc.text(`Nombre Completo: ${document.getElementById('nombre').value}`, 10, 100);
+    doc.text(`Dirección: ${document.getElementById('direccion').value}`, 10, 110);
+    doc.text(`Teléfono: ${document.getElementById('telefono').value}`, 10, 120);
+    doc.text(`Forma de Pago: ${document.getElementById('formaPago').value}`, 10, 130);
+
+    doc.save("reserva.pdf");
+});
+
+document.getElementById('resetCotizador').addEventListener('click', function() {
+    document.getElementById('resultado').style.display = 'none';
+    document.getElementById('reserva').style.display = 'none';
+    document.getElementById('cotizador').reset();
+});
+</script>
+</body>
+</html>
+
+
